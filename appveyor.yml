@@ -1,0 +1,24 @@
+version: '{build}'
+skip_tags: true
+image: Visual Studio 2019
+install:
+- ps: ./Setup.ps1
+build_script:
+- ps: ./Build.ps1
+test: off
+artifacts:
+- path: artifacts/Serilog.*.nupkg
+deploy:
+- provider: NuGet
+  skip_symbols: true
+  api_key:
+    secure: U7I8Skf+EcC7PiqvLWpSzPqNhCg03cqDOi4OtAkb+ZelMlQj1YoKDX8r1pdQzy7H
+  on:
+    branch: /^(main|dev)$/
+- provider: GitHub
+  auth_token:
+    secure: p4LpVhBKxGS5WqucHxFQ5c7C8cP74kbNB0Z8k9Oxx/PMaDQ1+ibmoexNqVU5ZlmX
+  artifact: /Serilog.*\.nupkg/
+  tag: v$(appveyor_build_version)
+  on:
+    branch: main

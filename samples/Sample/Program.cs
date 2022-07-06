@@ -46,6 +46,8 @@ namespace Sample
             }
         }
 
+        //sets up serilog logging using a serilog expression template to output structured json data
+        //to the console (standard output stream)
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .UseSerilog((context, services, configuration) => configuration
@@ -53,13 +55,17 @@ namespace Sample
                     .ReadFrom.Services(services)
                     .Enrich.FromLogContext()
                     .Enrich.With(new SeverityEnricher())
-                    //.WriteTo.Console(new RenderedCompactJsonFormatter()))
                     .WriteTo.Console(new ExpressionTemplate(
-                        "{ {timestamp: UtcDateTime(@t), textPayload: if @l = 'Information' then @m else @x, ..@p} }\n")))
+                        "{ {timestamp: UtcDateTime(@t), " +
+                        "textPayload: if @l = 'Information' then @m else @x, " +
+                        "..@p} }\n")))
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
     }
     
-    class SeverityEnricher : ILogEventEnricher
+    /// <summary>
+    /// A serilog ILogEventEnricher that enriches log events with a Severity value
+    /// </summary>
+    public class SeverityEnricher : ILogEventEnricher
     {
         private enum LogSeverity
         {
@@ -70,6 +76,7 @@ namespace Sample
             Critical,
             Default
         }
+        //translates a serilog LogEventLevel value to a comparable GCP LogSeverity value
         private static LogSeverity TranslateSeverity(LogEventLevel level) => level switch
         {
             LogEventLevel.Verbose => LogSeverity.Debug,
@@ -83,8 +90,7 @@ namespace Sample
         
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
-            logEvent.AddOrUpdateProperty(
-                propertyFactory.CreateProperty("Severity", TranslateSeverity(logEvent.Level)));
+            logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("Severity", TranslateSeverity(logEvent.Level)));
         }
     }
 }
